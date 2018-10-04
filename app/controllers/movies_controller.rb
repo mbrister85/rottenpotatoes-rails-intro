@@ -11,23 +11,32 @@ class MoviesController < ApplicationController
   end
 
   def index
+    sort = params[:sort] || session[:sort]
+
+    case sort
+      when "title"
+        @title = 'hilite'
+        order = :title
+      when "releasedate" 
+        @releasedate = 'hilite'
+        order = :release_date
+    end
+    
     @all_ratings = Movie.all_ratings
-    
-    @sort = params[:sort]
-    @selected_ratings = params[:ratings] || Hash[@all_ratings.map{|rating| [rating,rating]}]
-    
-    case @sort
-    when "title"
-      @movies = Movie.where(:rating => @selected_ratings.keys).order(:title)
-      @title = 'hilite'
-  
-    when "releasedate"
-      @movies = Movie.where(:rating => @selected_ratings.keys).order(:release_date)
-      @releasedate = 'hilite'
-    else 
-      @movies = Movie.where(:rating => @selected_ratings.keys)
-    end  
+    @selected_ratings = params[:ratings] || session[:ratings] || Hash[@all_ratings.map{|rating| [rating, rating]}]
+
+    # should i update the cookie or not
+    if (params[:sort] != session[:sort] or params[:ratings] != session[:ratings])
+      session[:sort] = sort
+      session[:ratings] = @selected_ratings
+      flash.keep
+      redirect_to :sort => sort, :ratings => @selected_ratings and return
+    end
+
+    @movies = Movie.where(:rating => @selected_ratings.keys).order(order)
+        
   end
+
 
   def new
     # default: render 'new' template
@@ -57,3 +66,5 @@ class MoviesController < ApplicationController
     redirect_to movies_path
   end
 end
+
+
